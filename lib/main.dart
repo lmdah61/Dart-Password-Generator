@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:chat_gpt_api/app/chat_gpt.dart';
-import 'package:chat_gpt_api/app/model/data_model/completion/completion_request.dart';
 import 'package:http/http.dart' as http;
 
-String _chatGPTapiKey = 'YOUR_API_KEY';
+import 'package:chat_gpt_api/app/chat_gpt.dart';
+import 'package:chat_gpt_api/app/model/data_model/completion/completion_request.dart';
 
-Future<int> getRandomNumber() async {
+const String _chatGPTapiKey = 'YOUR_API_KEY';
+
+Future<int> getRandomNumber(int range) async {
   final response = await http.get(Uri.parse(
-      'https://www.random.org/integers/?num=1&min=0&max=9&col=1&base=10&format=plain&rnd=new'));
+      'https://www.random.org/integers/?num=1&min=1&max=$range&col=1&base=10&format=plain&rnd=new'));
 
   if (response.statusCode == 200) {
     final number = int.parse(response.body.trim());
@@ -21,7 +22,7 @@ Future<int> getRandomNumber() async {
 
 Future<String> getRandomWord() async {
   final response =
-      await http.get(Uri.parse('https://random-word-api.herokuapp.com/word'));
+  await http.get(Uri.parse('https://random-word-api.herokuapp.com/word'));
 
   if (response.statusCode == 200) {
     final jsonResult = json.decode(response.body);
@@ -32,22 +33,46 @@ Future<String> getRandomWord() async {
   }
 }
 
-String getRandomSpecialCharacter() {
-  const specialChars = ['!', '@', '#', '\$', '%', '&', '?'];
-
-  final random = Random();
-  final index = random.nextInt(specialChars.length);
-
-  return specialChars[index];
+String addSpecialCharacter(String finalPhrase) {
+  final specialChars = ['!', '@', '#', '\$', '%', '^', '&', '*', '?'];
+  final randomCharIndex = Random().nextInt(specialChars.length);
+  final specialChar = specialChars[randomCharIndex];
+  final addAtBeginning = Random().nextBool();
+  return addAtBeginning ? specialChar + finalPhrase : finalPhrase + specialChar;
 }
 
-Future<void> main() async {
-  final randomWord = await getRandomWord();
+Future<String> replaceLetterWithNumber(String phrase) async {
+  final leetMap = {
+    'a': '4',
+    'b': '8',
+    'e': '3',
+    'l': '1',
+    'o': '0',
+    's': '5',
+    't': '7'
+  };
 
-  final randomNumber = await getRandomNumber();
+  // Convert the phrase to a list of characters
+  List<String> chars = phrase.split('');
 
-  final randomSpecialCharacter = getRandomSpecialCharacter();
+  // Generate a random index to replace
+  int indexToReplace = await getRandomNumber(chars.length);
 
+  // Get the character at the randomly generated index
+  String charToReplace = chars[indexToReplace].toLowerCase();
+
+  // Check if the character can be replaced according to leetMap
+  if (leetMap.containsKey(charToReplace)) {
+    // Replace the character with the leetMap value
+    chars[indexToReplace] = leetMap[charToReplace]!;
+  }
+
+  // Join the characters back together into a string and return it
+  return chars.join('');
+}
+
+
+Future<String> generatePhrase(String randomWord) async {
   final chatGpt = ChatGPT.builder(token: _chatGPTapiKey);
 
   final prompt = '''
@@ -63,20 +88,22 @@ Print the final phrase without any additional explanation, no quotes, no punctua
     ),
   );
 
-  final randomPhrase = chatGPTanswer?.choices?.first.text!;
+  final randomPhrase = chatGPTanswer?.choices?.first.text;
+  if (randomPhrase == null) {
+    throw Exception('Failed to generate random phrase');
+  }
 
-  final prompt2 = '''
-Replace one character from this String: $randomPhrase with the number $randomNumber. Keep the String readable.
-''';
+  return randomPhrase;
+}
 
-  final chatGPTanswer2 = await chatGpt.textCompletion(
-    request: CompletionRequest(
-      prompt: prompt2,
-      maxTokens: 256,
-    ),
-  );
-
-  final finalPassword = chatGPTanswer2?.choices?.first.text!;
-
-  print('$finalPassword$randomSpecialCharacter');
+Future<void> main() async {
+  try {
+    final randomWord = await getRandomWord();
+    final phrase = await generatePhrase(randomWord);
+    final finalPhrase = await replaceLetterWithNumber(phrase);
+    final password = addSpecialCharacter(finalPhrase);
+    print(password);
+  } catch (e) {
+    print('Failed to generate password: $e');
+  }
 }
