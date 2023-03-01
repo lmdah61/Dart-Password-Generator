@@ -5,11 +5,10 @@ import 'package:chat_gpt_api/app/chat_gpt.dart';
 import 'package:chat_gpt_api/app/model/data_model/completion/completion_request.dart';
 import 'package:http/http.dart' as http;
 
-const String _chatGPTapiKey =
-    'YOUR_API_KEY';
+const String _chatGPTapiKey = 'YOUR_API_KEY';
 
+// Gets a random number from Random.org
 Future<int> getRandomNumber(int range) async {
-  // Gets a random number from Random.org
   final response = await http.get(Uri.parse(
       'https://www.random.org/integers/?num=1&min=1&max=$range&col=1&base=10&format=plain&rnd=new'));
 
@@ -21,8 +20,8 @@ Future<int> getRandomNumber(int range) async {
   }
 }
 
+// Gets a random english word from a random word api
 Future<String> getRandomWord() async {
-  // Gets a random english word from 'random-word-api'
   final response =
       await http.get(Uri.parse('https://random-word-api.herokuapp.com/word'));
 
@@ -35,21 +34,7 @@ Future<String> getRandomWord() async {
   }
 }
 
-String addSpecialCharacter(String finalPhrase) {
-  final specialChars = ['!', '@', '#', '\$', '%', '&', '?'];
-
-  // Gets a random char from the list
-  final randomCharIndex = Random().nextInt(specialChars.length);
-  final specialChar = specialChars[randomCharIndex];
-
-  // Randomly decides if the character should be added at the front or at the end of the phrase
-  final addAtBeginning = Random().nextBool();
-
-  return addAtBeginning
-      ? "$specialChar$finalPhrase"
-      : "$finalPhrase$specialChar";
-}
-
+// Replace a random character from a phrase with a number
 Future<String> replaceLetterWithNumber(String phrase) async {
   final leetMap = {
     'a': '4',
@@ -87,6 +72,21 @@ Future<String> replaceLetterWithNumber(String phrase) async {
   return chars.join('');
 }
 
+// Adds a special character at the front or at the end of a phrase
+String addSpecialCharacter(String phrase) {
+  final specialChars = ['!', '@', '#', '\$', '%', '&', '?'];
+
+  // Gets a random char from the list
+  final randomCharIndex = Random().nextInt(specialChars.length);
+  final specialChar = specialChars[randomCharIndex];
+
+  // Randomly decides if the character should be added at the front or at the end of the phrase
+  final addAtBeginning = Random().nextBool();
+
+  return addAtBeginning ? "$specialChar$phrase" : "$phrase$specialChar";
+}
+
+// Generate a phrase featuring a random word
 Future<String> generatePhrase(String randomWord) async {
   final chatGpt = ChatGPT.builder(token: _chatGPTapiKey);
 
@@ -103,7 +103,8 @@ Generate a memorable 4-word phrase with the word $randomWord. Each word should s
 
   final randomPhrase = chatGPTanswer?.choices?.first.text;
   if (randomPhrase == null) {
-    throw Exception('Failed to generate random phrase');
+    throw Exception(
+        'Failed to generate random phrase, check your chatGPT API key');
   }
 
   return randomPhrase.trim();
